@@ -11,7 +11,7 @@ ARG JOBS=2
 RUN echo "BUILDPLATFORM: $BUILDPLATFORM, TARGETPLATFORM: $TARGETPLATFORM, JOBS: $JOBS"
 
 RUN yum install -y gcc gcc-c++ make patch sudo unzip perl zlib automake libtool \
-    zlib-devel bzip2 bzip2-devel libxml2-devel \
+    zlib-devel bzip2 bzip2-devel libxml2-devel git \
     tcl cmake
 
 # Libs path for app which depends on ssl, such as libsrt.
@@ -46,13 +46,15 @@ RUN cd /tmp/x264-snapshot-20181116-2245 && ./configure --disable-cli --disable-s
 # The libsrt for SRS, which depends on openssl.
 ADD srt-1.4.1.tar.gz /tmp
 RUN cd /tmp/srt-1.4.1 && ./configure --disable-shared --enable-static && make -j${JOBS} && make install
-
+# For libx265
+ADD x265-3.5.1.tar.gz /tmp
+RUN cd /tmp/x265-3.5.1/build/linux && cmake -G "Unix Makefiles" -DENABLE_SHARED:bool=off ../../source && make -j${JOBS} && make install 
 # Build FFmpeg, static link libraries.
 ADD ffmpeg-4.2.1.tar.bz2 /tmp
 RUN cd /tmp/ffmpeg-4.2.1 && ./configure --enable-pthreads --extra-libs=-lpthread \
         --enable-gpl --enable-nonfree \
         --enable-postproc --enable-bzlib --enable-zlib \
-        --enable-libx264 --enable-libmp3lame --enable-libfdk-aac \
+        --enable-libx264 --enable-libx265 --enable-libmp3lame --enable-libfdk-aac \
         --enable-libxml2 --enable-demuxer=dash \
         --enable-libsrt --pkg-config-flags='--static' && \
 	make -j${JOBS} && make install && echo "FFMPEG build and install successfully"
